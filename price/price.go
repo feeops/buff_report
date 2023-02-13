@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/duke-git/lancet/v2/fileutil"
@@ -15,6 +16,8 @@ func main() {
 
 	content, _ := fileutil.ReadFileToString("prices_v6.json")
 
+	fmt.Println(len(gjson.Parse(content).Map()))
+	os.Exit(0)
 	for marketHashName, v := range gjson.Parse(content).Map() {
 		priceMap := map[string]float64{}
 		buff163 := v.Get("buff163.starting_at.price").Float()

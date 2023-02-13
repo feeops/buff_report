@@ -36,6 +36,7 @@ var (
 	classInstanceName = map[string]string{}
 	assetName         = map[string]string{}
 	steamBalance      int64
+	steamKey          string
 )
 
 func steamCookies() {
@@ -118,10 +119,14 @@ func checkSteamAccount() {
 
 	nickname := getText(doc, `//span[@id="account_pulldown"]`)
 	accountName := getText(doc, `//span[@class="persona online"]`)
-	steamKey := cleanStr(getText(doc, `//div[@id="bodyContents_ex"]/p`))
+	bodyContents := getText(doc, `//div[@id="bodyContents_ex"]/p`)
+	if len(strings.Split(bodyContents, ": ")) == 2 {
+		steamKey = strings.Split(bodyContents, ": ")[1]
+	}
+
 	if len(accountName) == 0 || len(steamKey) == 0 {
 		logger.Error().Str("resp", html).Msg("steamID is empty")
-		fmt.Println("获取不到账号名或Steam Web API Key，或重试执行程序，如果无效，请重新导出steam cookies")
+		fmt.Println("获取不到账号名或Steam Web API Key，请检查代理或重试执行程序，如果无效，请重新导出steam cookies")
 		waitExit()
 	}
 
@@ -138,8 +143,8 @@ func tradeHistory() {
 
 	for {
 		fmt.Printf("开始获取steam第%d页交易历史数据\n", pageNum)
-		URL := fmt.Sprintf("https://api.steampowered.com/IEconService/GetTradeHistory/v1/?max_trades=50&start_after_time=%d&start_after_tradeid=%s&get_descriptions=1&include_total=1&language=english&key=4E861FB1ED2BF6AF13ED12A0EB9EBA5C",
-			afterTime, tradeID)
+		URL := fmt.Sprintf("https://api.steampowered.com/IEconService/GetTradeHistory/v1/?max_trades=50&start_after_time=%d&start_after_tradeid=%s&get_descriptions=1&include_total=1&language=english&key=%s",
+			afterTime, tradeID, steamKey)
 		resp, err := steamClient.R().SetRetryCount(3).Get(URL)
 
 		if err != nil {
