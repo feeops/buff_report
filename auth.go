@@ -19,7 +19,7 @@ import (
 
 var (
 	ProductName    = "buff_report"
-	ProductVersion = "1.1"
+	ProductVersion = "1.3"
 )
 
 func auth(buffID string) error {

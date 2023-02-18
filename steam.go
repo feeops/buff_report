@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/antchfx/htmlquery"
+	"github.com/araddon/dateparse"
 	"github.com/duke-git/lancet/v2/fileutil"
 	"github.com/imroc/req/v3"
 	"github.com/rapid7/go-get-proxied/proxy"
@@ -43,6 +44,11 @@ func steamCookies() {
 	fileStr, _ := fileutil.ReadFileToString("cookies_steam.txt")
 	if len(fileStr) == 0 {
 		fmt.Println("steam_cookies.txt数据为空，请检查")
+		waitExit()
+	}
+
+	if strings.Contains(fileStr, "steampowered.com") {
+		fmt.Println("cookies导出的域名是steampowered.com，应该从https://steamcommunity.com导出")
 		waitExit()
 	}
 
@@ -142,7 +148,13 @@ func tradeHistory() {
 	pageNum := 1
 
 	for {
-		fmt.Printf("开始获取steam第%d页交易历史数据\n", pageNum)
+
+		t, _ := dateparse.ParseLocal(cast.ToString(afterTime))
+		if t.Before(steamStart) {
+			break
+		}
+
+		fmt.Printf("开始获取steam 交易时间:%s 之前的第%d页交易历史数据\n", t.Format(time.DateTime), pageNum)
 		URL := fmt.Sprintf("https://api.steampowered.com/IEconService/GetTradeHistory/v1/?max_trades=50&start_after_time=%d&start_after_tradeid=%s&get_descriptions=1&include_total=1&language=english&key=%s",
 			afterTime, tradeID, steamKey)
 		resp, err := steamClient.R().SetRetryCount(3).Get(URL)
@@ -225,7 +237,10 @@ func steamHistory() {
 			waitExit()
 		}
 
-		steamPage(resp.String())
+		skip := steamPage(resp.String())
+		if skip {
+			break
+		}
 
 		if pageSize+start >= totalCount {
 			break
@@ -240,15 +255,32 @@ func steamHistory() {
 
 }
 
-func steamPage(html string) {
+func steamPage(html string) bool {
+	var total, check int
 	for _, purchase := range gjson.Get(html, "purchases").Map() {
+		total++
 		newID := purchase.Get("asset.new_id").Str
 		amount := purchase.Get("asset.amount").Str
 		paidAmount := purchase.Get("paid_amount").Int()
 		paidFee := purchase.Get("paid_fee").Int()
 		steamBalance += paidAmount + paidFee
 		thirdMap[newID] = cast.ToFloat64(float64(paidFee+paidAmount) / 100.0)
+
+		timeSold, _ := dateparse.ParseLocal(cast.ToString(purchase.Get("time_sold").Int()))
 		logger.Info().Str("amount", amount).Str("newID", newID).
-			Int64("paidAmount", paidAmount).Int64("paidFee", paidFee).Msg("purchase")
+			Int64("paidAmount", paidAmount).Int64("paidFee", paidFee).
+			Time("timeSold", timeSold).
+			Msg("purchase")
+
+		if timeSold.Before(steamStart) {
+			check++
+		}
+
+	}
+
+	if total == check {
+		return true
+	} else {
+		return false
 	}
 }

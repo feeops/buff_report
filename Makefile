@@ -1,5 +1,5 @@
 BINARY_NAME=buff_report
-VERSION=1.1
+VERSION=1.3
 all:
 	rm -rf build
 	mkdir -p build

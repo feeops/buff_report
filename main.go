@@ -29,7 +29,8 @@ var (
 
 	buffStart time.Time
 
-	buffEnd time.Time
+	buffEnd    time.Time
+	steamStart time.Time
 
 	httpProxy int
 )
@@ -51,6 +52,11 @@ func main() {
 	interval = viper.GetInt64("interval")
 	httpProxy = viper.GetInt("httpProxy")
 
+	if exchangeRate <= 0 {
+		fmt.Printf("卡价: %f 不能小于等于0\n", exchangeRate)
+		waitExit()
+	}
+
 	var err error
 
 	buffStart, err = dateparse.ParseLocal(viper.GetString("buffStart"))
@@ -68,6 +74,12 @@ func main() {
 	if buffEnd.Before(buffStart) {
 		fmt.Printf("buff交易记录的截止时间: %s 小于开始时间: %s 请先修正此问题\n",
 			buffEnd.Format("2006-01-02 15-04-05"), buffStart.Format("2006-01-02 15-04-05"))
+		waitExit()
+	}
+
+	steamStart, err = dateparse.ParseLocal(viper.GetString("steamStart"))
+	if err != nil {
+		fmt.Printf("steam交易记录的开如时间: %s 时间解析出错，请检查相关配置\n", viper.GetString("steamStart"))
 		waitExit()
 	}
 
