@@ -20,10 +20,13 @@ message Request {
 }
 
 message Reply {
+  // 最新版
   string productVersion = 1;
   string expireTime = 2;
   int64 expireSec = 3;
   string AccountID = 4;
   // 通知
   string notice = 5;
+  // 最小版
+  string minVersion = 6;
 }

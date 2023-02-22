@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
-
-	"google.golang.org/grpc/credentials"
-
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/credentials"
 	// 导入grpc包 .
 	"google.golang.org/grpc"
 	// 导入刚才我们生成的代码所在的proto包 .
@@ -19,7 +17,7 @@ import (
 
 var (
 	ProductName    = "buff_report"
-	ProductVersion = "1.3"
+	ProductVersion = "1.4"
 )
 
 func auth(buffID string) error {
@@ -34,18 +32,19 @@ func auth(buffID string) error {
 	conn, err := grpc.DialContext(ctx,
 		"gw.bufftools.com:443",
 		grpc.WithBlock(),
-		grpc.WithTransportCredentials(credentials.NewTLS(config)))
+		grpc.WithTransportCredentials(credentials.NewTLS(config)),
+	)
 
 	if err != nil {
-		return fmt.Errorf("无法连接服务器:%w", err)
+		return fmt.Errorf("无法连接服务器,错误原因:%w 请重试或切换网络", err)
 	}
 
 	defer conn.Close()
 
-	// 初始化Greeter服务客户端
+	// 初始化服务客户端
 	c := pb.NewAccountClient(conn)
 
-	// 调用SayHello接口，发送一条消息
+	// 发送消息
 	req := new(pb.Request)
 	req.ProductName = ProductName
 	req.ProductVersion = ProductVersion
@@ -57,7 +56,8 @@ func auth(buffID string) error {
 	}
 
 	logger.Info().Str("ExpireTime", r.ExpireTime).Str("AccountID", r.AccountID).
-		Str("ProductVersion", r.ProductVersion).Msg("response")
+		Str("currentProductVersion", ProductVersion).
+		Str("latestProductVersion", r.ProductVersion).Msg("response")
 
 	os.WriteFile("账号信息.txt", []byte(r.AccountID), 0666)
 
@@ -65,19 +65,32 @@ func auth(buffID string) error {
 		r.AccountID)
 	os.WriteFile("续费链接.url", []byte(URL), 0666)
 
-	fmt.Printf("当前软件版本%s 最新软件版本%s\n", ProductVersion, r.ProductVersion)
-	fmt.Printf("当前账号ID:%s 过期时间:%s\n", r.AccountID, r.ExpireTime)
+	fmt.Printf("当前软件版本: %s 最新软件版本: %s\n", ProductVersion, r.ProductVersion)
+	fmt.Printf("当前账号ID: %s 过期时间: %s\n", r.AccountID, r.ExpireTime)
 	os.Stdout.Sync()
 
-	v1, _ := version.NewVersion(ProductVersion)
-	v2, _ := version.NewVersion(r.ProductVersion)
+	clientVersion, _ := version.NewVersion(ProductVersion)
+	latestVersion, _ := version.NewVersion(r.ProductVersion)
+	minVersion, _ := version.NewVersion(r.MinVersion)
 
-	if v1.LessThan(v2) {
-		return fmt.Errorf("当前版本过老，请去https://www.bufftools.com上下载最新版本")
+	if clientVersion.LessThan(latestVersion) {
+		fmt.Println("官网https://www.bufftools.com有最新的版本")
+	}
+
+	if len(r.MinVersion) > 0 && clientVersion.LessThan(minVersion) {
+		fmt.Printf("当前版本:%s 不满足最低版本:%s 请去官网https://www.bufftools.com下载最新版本\n",
+			clientVersion, minVersion)
+		waitExit()
+	}
+
+	if len(r.Notice) > 0 {
+		fmt.Printf("消息通知:%s 如有问题请联系作者\n",
+			r.Notice)
+		waitExit()
 	}
 
 	if r.ExpireSec <= 0 {
-		return fmt.Errorf("试用期：%s已过，请及时续费", r.ExpireTime)
+		return fmt.Errorf("试用期已过，到时时间：%s，请及时续费", r.ExpireTime)
 	}
 
 	return nil

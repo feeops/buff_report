@@ -154,7 +154,7 @@ func tradeHistory() {
 			break
 		}
 
-		fmt.Printf("开始获取steam 交易时间:%s 之前的第%d页交易历史数据\n", t.Format(time.DateTime), pageNum)
+		fmt.Printf("开始获取steam 第%d页交易历史数据 交易时间是在%s之前\n", pageNum, t.Format(time.DateTime))
 		URL := fmt.Sprintf("https://api.steampowered.com/IEconService/GetTradeHistory/v1/?max_trades=50&start_after_time=%d&start_after_tradeid=%s&get_descriptions=1&include_total=1&language=english&key=%s",
 			afterTime, tradeID, steamKey)
 		resp, err := steamClient.R().SetRetryCount(3).Get(URL)

@@ -22,7 +22,7 @@ cookies_steam.txt
 config.txt
 crash.log
 账号信息.txt
-*.json
 *.xlsx
 *.url
+*.syso
 

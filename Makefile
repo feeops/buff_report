@@ -1,5 +1,5 @@
 BINARY_NAME=buff_report
-VERSION=1.3
+VERSION=1.4
 all:
 	rm -rf build
 	mkdir -p build
@@ -8,6 +8,7 @@ all:
 	cp cookies.example.txt build/cookies_steam.txt
 	cp docs/网易buff利润报表软件使用教程.pdf build/
 	cp docs/EditThisCookie.crx build/
+	go-winres make
 	GOARCH=arm64 GOOS=darwin go build -o build/${BINARY_NAME}  -buildmode=pie .
 	GOARCH=amd64 GOOS=darwin go build -o build/${BINARY_NAME}-darwin  -buildmode=pie .
 	GOARCH=amd64 GOOS=linux go build -o build/${BINARY_NAME}-linux  -buildmode=pie .
